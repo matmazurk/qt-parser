@@ -3,7 +3,6 @@ package parser
 import (
 	"encoding/binary"
 	"io"
-	"maps"
 
 	"github.com/pkg/errors"
 )
@@ -28,26 +27,25 @@ func newParser() parser {
 	}
 }
 
-func (p parser) Parse(r io.Reader) (map[string]string, error) {
+func (p parser) Parse(r io.Reader) (map[string][][]byte, error) {
 	return handleAtom(r, p.toFind, 0, 0)
 }
 
-func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]string, error) {
+func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]byte, error) {
 	if len(a.params) > 0 {
 		buf := make([]byte, size-alreadyRead)
 		_, err := r.Read(buf)
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not read bytes from leaf atom '%s'", a.typ)
 		}
-		ret := map[string]string{}
+		ret := map[string][][]byte{}
 		for _, sp := range a.params {
-			val := buf[sp.offset-alreadyRead : sp.offset-alreadyRead+sp.bytesAmount]
-			ret[sp.findingName] = string(val)
+			ret[sp.findingName] = append(ret[sp.findingName], buf[sp.offset-alreadyRead:sp.offset-alreadyRead+sp.bytesAmount])
 		}
 		return ret, nil
 	}
 
-	rett := map[string]string{}
+	rett := map[string][][]byte{}
 	readBytes := alreadyRead
 	for readBytes < size || size == 0 {
 		var loopReadBytes uint64 = 0
@@ -79,7 +77,7 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]stri
 				return nil, errors.Wrapf(err, "could not handle atom '%s'", currAtomType)
 			}
 			readBytes += atomSize
-			maps.Copy(rett, ret)
+			appendMap(rett, ret)
 		} else {
 			err := skipBytes(r, atomSize-loopReadBytes)
 			readBytes += atomSize
@@ -99,4 +97,14 @@ func skipBytes(r io.Reader, count uint64) error {
 
 func (p parser) ToFind() *atom {
 	return p.toFind
+}
+
+func appendMap(dst, src map[string][][]byte) {
+	for k, v := range src {
+		if _, ok := dst[k]; !ok {
+			dst[k] = v
+		} else {
+			dst[k] = append(dst[k], v...)
+		}
+	}
 }
