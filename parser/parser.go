@@ -58,6 +58,10 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]
 			}
 			return nil, errors.Wrap(err, "could not read atom header")
 		}
+		if n < u64Bytes {
+			readBytes += uint64(n)
+			continue
+		}
 
 		atomSize := uint64(binary.BigEndian.Uint32(header[:u32Bytes]))
 		currAtomType := atomType(header[u32Bytes:])
