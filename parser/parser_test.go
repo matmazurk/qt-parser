@@ -17,15 +17,15 @@ func TestParseSmallAtom(t *testing.T) {
 		name        string
 		atomsPath   string
 		expected    string
-		offset      uint
-		bytesAmount uint
+		offset      uint64
+		bytesAmount uint64
 		errContains string
 	}{
 		{
 			name:        "should_successfully_parse_width_from_'trak/tkhd'",
-			atomsPath:   "trak/tkhd",
-			expected:    "00000500",
-			offset:      128,
+			atomsPath:   "moov/trak/tkhd",
+			expected:    "01400000",
+			offset:      84,
 			bytesAmount: 4,
 		},
 		{
@@ -37,7 +37,7 @@ func TestParseSmallAtom(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			f, err := videoTrakAtomHex.Open("testfiles/video_trak_atom.bin")
+			f, err := videoTrakAtomHex.Open("testfiles/sample.mp4")
 			require.NoError(t, err)
 			defer f.Close()
 

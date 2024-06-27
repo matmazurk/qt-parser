@@ -4,8 +4,8 @@ import "strings"
 
 type search struct {
 	atomsPath   string
-	offset      uint
-	bytesAmount uint
+	offset      uint64
+	bytesAmount uint64
 	findingName string
 }
 
@@ -17,7 +17,7 @@ func NewBuilder() *builder {
 	return &builder{}
 }
 
-func (b *builder) Find(atomsPath string, offset, bytesAmount uint, findingName string) *builder {
+func (b *builder) Find(atomsPath string, offset, bytesAmount uint64, findingName string) *builder {
 	b.searches = append(b.searches, search{
 		atomsPath:   atomsPath,
 		offset:      offset,

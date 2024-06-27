@@ -5,8 +5,8 @@ type atomType string
 const rootAtom atomType = "root"
 
 type searchParams struct {
-	offset      uint
-	bytesAmount uint
+	offset      uint64
+	bytesAmount uint64
 	findingName string
 }
 
