@@ -29,23 +29,22 @@ func newParser() parser {
 }
 
 func (p parser) Parse(r io.Reader) (map[string]string, error) {
-	ret, _, err := handleAtom(r, p.toFind, 0, 0)
-	return ret, err
+	return handleAtom(r, p.toFind, 0, 0)
 }
 
-func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]string, uint64, error) {
+func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]string, error) {
 	if len(a.params) > 0 {
 		buf := make([]byte, size-alreadyRead)
-		n, err := r.Read(buf)
+		_, err := r.Read(buf)
 		if err != nil {
-			return nil, uint64(n), errors.Wrapf(err, "could not read bytes from leaf atom '%s'", a.typ)
+			return nil, errors.Wrapf(err, "could not read bytes from leaf atom '%s'", a.typ)
 		}
 		ret := map[string]string{}
 		for _, sp := range a.params {
 			val := buf[sp.offset-alreadyRead : sp.offset-alreadyRead+sp.bytesAmount]
 			ret[sp.findingName] = string(val)
 		}
-		return ret, size, nil
+		return ret, nil
 	}
 
 	rett := map[string]string{}
@@ -57,9 +56,9 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]stri
 		loopReadBytes += uint64(n)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return rett, uint64(n), nil
+				return rett, nil
 			}
-			return nil, uint64(n), errors.Wrap(err, "could not read atom header")
+			return nil, errors.Wrap(err, "could not read atom header")
 		}
 
 		atomSize := uint64(binary.BigEndian.Uint32(header[:u32Bytes]))
@@ -69,37 +68,33 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]stri
 			n, err := r.Read(bigSize)
 			loopReadBytes += uint64(n)
 			if err != nil {
-				if errors.Is(err, io.EOF) {
-					return rett, readBytes, nil
-				}
+				return nil, err
 			}
 			atomSize = binary.BigEndian.Uint64(bigSize)
 		}
 
 		if currAtom, ok := a.childs[currAtomType]; ok {
-			ret, _, err := handleAtom(r, currAtom, atomSize, loopReadBytes)
+			ret, err := handleAtom(r, currAtom, atomSize, loopReadBytes)
 			if err != nil {
-				return nil, readBytes, errors.Wrapf(err, "could not handle atom '%s'", currAtomType)
+				return nil, errors.Wrapf(err, "could not handle atom '%s'", currAtomType)
 			}
 			readBytes += atomSize
 			maps.Copy(rett, ret)
 		} else {
-			_, err := skipBytes(r, atomSize-loopReadBytes)
+			err := skipBytes(r, atomSize-loopReadBytes)
 			readBytes += atomSize
 			if err != nil {
-				if errors.Is(err, io.EOF) {
-					return rett, readBytes, nil
-				}
-				return nil, readBytes, errors.Wrapf(err, "could not skip %d bytes of '%s' atom type", atomSize, currAtomType)
+				return nil, errors.Wrapf(err, "could not skip %d bytes of '%s' atom type", atomSize, currAtomType)
 			}
 		}
 	}
-	return rett, readBytes, nil
+	return rett, nil
 }
 
-func skipBytes(r io.Reader, count uint64) (int, error) {
+func skipBytes(r io.Reader, count uint64) error {
 	buf := make([]byte, count)
-	return r.Read(buf)
+	_, err := r.Read(buf)
+	return err
 }
 
 func (p parser) ToFind() *atom {
