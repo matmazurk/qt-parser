@@ -1,10 +1,12 @@
-package main_test
+package parser_test
 
 import (
 	"embed"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/matmazurk/qt-parser/parser"
 )
 
 //go:embed testfiles
@@ -45,7 +47,9 @@ func TestParseSmallAtom(t *testing.T) {
 			defer f.Close()
 
 			findingName := "some finding"
-			parser := NewParserBuilder{}.Find(tc.atomsPath, tc.offset, tc.bytesAmount, findingName).Build()
+			p := parser.NewBuilder{}.
+				Find(tc.atomsPath, tc.offset, tc.bytesAmount, findingName).
+				Build()
 			res, err := parser.Parse(f)
 			if len(tc.errContains) > 0 {
 				require.ErrorContains(t, err, tc.errContains)
