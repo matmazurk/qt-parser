@@ -53,7 +53,6 @@ func (b *builder) Build() parser {
 			bytesAmount: s.bytesAmount,
 			findingName: s.findingName,
 		})
-		println()
 	}
 	return ret
 }
