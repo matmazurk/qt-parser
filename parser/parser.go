@@ -45,22 +45,21 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]stri
 			val := buf[sp.offset-alreadyRead : sp.offset-alreadyRead+sp.bytesAmount]
 			ret[sp.findingName] = string(val)
 		}
-		return ret, uint64(n), nil
+		return ret, size, nil
 	}
 
 	rett := map[string]string{}
-	var readBytes uint64 = alreadyRead
+	readBytes := alreadyRead
 	for readBytes < size || size == 0 {
 		var loopReadBytes uint64 = 0
 		header := make([]byte, u64Bytes)
 		n, err := r.Read(header)
 		loopReadBytes += uint64(n)
-		readBytes += uint64(n)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return rett, uint64(n), nil
 			}
-			return nil, readBytes, errors.Wrap(err, "could not read atom header")
+			return nil, uint64(n), errors.Wrap(err, "could not read atom header")
 		}
 
 		atomSize := uint64(binary.BigEndian.Uint32(header[:u32Bytes]))
@@ -69,7 +68,6 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]stri
 			bigSize := make([]byte, u64Bytes)
 			n, err := r.Read(bigSize)
 			loopReadBytes += uint64(n)
-			readBytes += uint64(n)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return rett, readBytes, nil
@@ -79,16 +77,15 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string]stri
 		}
 
 		if currAtom, ok := a.childs[currAtomType]; ok {
-			ret, n, err := handleAtom(r, currAtom, atomSize, loopReadBytes)
+			ret, _, err := handleAtom(r, currAtom, atomSize, loopReadBytes)
 			if err != nil {
 				return nil, readBytes, errors.Wrapf(err, "could not handle atom '%s'", currAtomType)
 			}
-			readBytes += uint64(n)
-			loopReadBytes += uint64(n)
+			readBytes += atomSize
 			maps.Copy(rett, ret)
 		} else {
-			n, err := skipBytes(r, atomSize-loopReadBytes)
-			readBytes += uint64(n)
+			_, err := skipBytes(r, atomSize-loopReadBytes)
+			readBytes += atomSize
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return rett, readBytes, nil
