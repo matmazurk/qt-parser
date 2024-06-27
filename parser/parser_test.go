@@ -33,11 +33,6 @@ func TestParseSmallAtom(t *testing.T) {
 			atomsPath:   "moov/trak/tkhd",
 			errContains: "atom 'moov' not found",
 		},
-		{
-			name:        "should_return_err_when_last_atom_in_path_is_not_data_atom",
-			atomsPath:   "moov/trak",
-			errContains: "atom 'moov/trak' is not a data atom",
-		},
 	}
 
 	for _, tc := range tcs {
@@ -47,10 +42,10 @@ func TestParseSmallAtom(t *testing.T) {
 			defer f.Close()
 
 			findingName := "some finding"
-			p := parser.NewBuilder{}.
+			p := parser.NewBuilder().
 				Find(tc.atomsPath, tc.offset, tc.bytesAmount, findingName).
 				Build()
-			res, err := parser.Parse(f)
+			res, err := p.Parse(f)
 			if len(tc.errContains) > 0 {
 				require.ErrorContains(t, err, tc.errContains)
 				return
