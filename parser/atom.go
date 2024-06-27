@@ -12,7 +12,7 @@ type searchParams struct {
 
 type atom struct {
 	typ    atomType
-	childs map[atomType][]atom
+	childs map[atomType]*atom
 
 	params []searchParams
 }
