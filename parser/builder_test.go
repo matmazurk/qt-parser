@@ -9,7 +9,7 @@ import (
 func TestBuilderBuild(t *testing.T) {
 	p := NewBuilder().
 		Find("moov/trak/tkhd", 10, 4, "some-finding").
-		Find("moov/trak", 12, 4, "other-finding").
+		Find("moov/trak/tkhd", 12, 4, "other-finding").
 		Build()
 
 	expected := &atom{
@@ -20,22 +20,20 @@ func TestBuilderBuild(t *testing.T) {
 				childs: map[atomType]*atom{
 					"trak": {
 						typ: "trak",
-						params: []searchParams{
-							{
-								offset:      12,
-								bytesAmount: 4,
-								findingName: "other-finding",
-							},
-						},
 						childs: map[atomType]*atom{
 							"tkhd": {
 								typ:    "tkhd",
 								childs: map[atomType]*atom{},
-								params: []searchParams{
+								searchParams: []searchParams{
 									{
 										offset:      10,
 										bytesAmount: 4,
 										findingName: "some-finding",
+									},
+									{
+										offset:      12,
+										bytesAmount: 4,
+										findingName: "other-finding",
 									},
 								},
 							},
@@ -45,5 +43,5 @@ func TestBuilderBuild(t *testing.T) {
 			},
 		},
 	}
-	require.EqualValues(t, expected, p.ToFind())
+	require.EqualValues(t, expected, p.Root())
 }

@@ -3,10 +3,8 @@ package parser
 import "strings"
 
 type search struct {
-	atomsPath   string
-	offset      uint64
-	bytesAmount uint64
-	findingName string
+	atomPath     string
+	searchParams searchParams
 }
 
 type builder struct {
@@ -17,12 +15,14 @@ func NewBuilder() *builder {
 	return &builder{}
 }
 
-func (b *builder) Find(atomsPath string, offset, bytesAmount uint64, findingName string) *builder {
+func (b *builder) Find(atomPath string, offset, bytesAmount uint64, findingName string) *builder {
 	b.searches = append(b.searches, search{
-		atomsPath:   atomsPath,
-		offset:      offset,
-		bytesAmount: bytesAmount,
-		findingName: findingName,
+		atomPath: atomPath,
+		searchParams: searchParams{
+			offset:      offset,
+			bytesAmount: bytesAmount,
+			findingName: findingName,
+		},
 	})
 	return b
 }
@@ -30,8 +30,8 @@ func (b *builder) Find(atomsPath string, offset, bytesAmount uint64, findingName
 func (b *builder) Build() parser {
 	ret := newParser()
 	for _, s := range b.searches {
-		currAtom := ret.toFind
-		atomTypes := strings.Split(s.atomsPath, "/")
+		currAtom := ret.root
+		atomTypes := strings.Split(s.atomPath, "/")
 		if len(atomTypes) == 0 {
 			continue
 		}
@@ -48,11 +48,7 @@ func (b *builder) Build() parser {
 				currAtom = newAtom
 			}
 		}
-		currAtom.params = append(currAtom.params, searchParams{
-			offset:      s.offset,
-			bytesAmount: s.bytesAmount,
-			findingName: s.findingName,
-		})
+		currAtom.searchParams = append(currAtom.searchParams, s.searchParams)
 	}
 	return ret
 }

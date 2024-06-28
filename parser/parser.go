@@ -15,12 +15,12 @@ const (
 )
 
 type parser struct {
-	toFind *atom
+	root *atom
 }
 
 func newParser() parser {
 	return parser{
-		toFind: &atom{
+		root: &atom{
 			typ:    rootAtom,
 			childs: map[atomType]*atom{},
 		},
@@ -28,18 +28,22 @@ func newParser() parser {
 }
 
 func (p parser) Parse(r io.Reader) (map[string][][]byte, error) {
-	return handleAtom(r, p.toFind, 0, 0)
+	return handleAtom(r, p.root, 0, 0)
+}
+
+func (p parser) Root() *atom {
+	return p.root
 }
 
 func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]byte, error) {
-	if len(a.params) > 0 {
+	if len(a.searchParams) > 0 {
 		buf := make([]byte, size-alreadyRead)
 		_, err := r.Read(buf)
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not read bytes from leaf atom '%s'", a.typ)
 		}
 		ret := map[string][][]byte{}
-		for _, sp := range a.params {
+		for _, sp := range a.searchParams {
 			ret[sp.findingName] = append(ret[sp.findingName], buf[sp.offset-alreadyRead:sp.offset-alreadyRead+sp.bytesAmount])
 		}
 		return ret, nil
@@ -97,10 +101,6 @@ func skipBytes(r io.Reader, count uint64) error {
 	buf := make([]byte, count)
 	_, err := r.Read(buf)
 	return err
-}
-
-func (p parser) ToFind() *atom {
-	return p.toFind
 }
 
 func appendMap(dst, src map[string][][]byte) {
