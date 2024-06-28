@@ -27,6 +27,9 @@ func newParser() parser {
 	}
 }
 
+// Parse tries to recursively look for child atoms of its root atom, reading given data from leaf atoms
+// returned map consists of findingName as a key and the findings as value
+// the findings for single findingName are always in the same order as particular atoms in parsed file
 func (p parser) Parse(r io.Reader) (map[string][][]byte, error) {
 	return handleAtom(r, p.root, 0, 0)
 }
@@ -35,8 +38,12 @@ func (p parser) Root() *atom {
 	return p.root
 }
 
+// handleAtom reads desired data for leaf atoms or recursively propagetes itself among container atom childs
+// reader should be exacly after atom's header position
+// size 0 denotes root atom
+// alreadyRead should be set to atom's header size
 func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]byte, error) {
-	if len(a.searchParams) > 0 {
+	if a.IsLeaf() {
 		buf := make([]byte, size-alreadyRead)
 		_, err := r.Read(buf)
 		if err != nil {
@@ -49,7 +56,7 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]
 		return ret, nil
 	}
 
-	rett := map[string][][]byte{}
+	findings := map[string][][]byte{}
 	readBytes := alreadyRead
 	for readBytes < size || size == 0 {
 		var loopReadBytes uint64 = 0
@@ -58,7 +65,7 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]
 		loopReadBytes += uint64(n)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return rett, nil
+				return findings, nil
 			}
 			return nil, errors.Wrap(err, "could not read atom header")
 		}
@@ -85,7 +92,7 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]
 				return nil, errors.Wrapf(err, "could not handle atom '%s'", currAtomType)
 			}
 			readBytes += atomSize
-			appendMap(rett, ret)
+			appendMap(findings, ret)
 		} else {
 			err := skipBytes(r, atomSize-loopReadBytes)
 			readBytes += atomSize
@@ -94,15 +101,17 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]
 			}
 		}
 	}
-	return rett, nil
+	return findings, nil
 }
 
+// skipBytes mindlessly skips given count of bytes in a reader
 func skipBytes(r io.Reader, count uint64) error {
 	buf := make([]byte, count)
 	_, err := r.Read(buf)
 	return err
 }
 
+// appendMap appends src to dst by extending dst with new key/values
 func appendMap(dst, src map[string][][]byte) {
 	for k, v := range src {
 		if _, ok := dst[k]; !ok {
