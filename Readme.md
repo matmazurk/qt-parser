@@ -1,7 +1,8 @@
 # qt-parser
 
-Simple QuickTime parser
-Includes parser package for API and executable which reads dimensions from video tracks and sampling frequency from audio tracks
+### Simple QuickTime parser
+
+Includes `parser` package for API and executable which reads dimensions from video tracks and sampling frequency from audio tracks
 
 ## Installation
 ```bash
