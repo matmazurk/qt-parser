@@ -16,7 +16,7 @@ qt-parser path/to/file
 
 ## Running without installation
 ```bash
-git clone github.com/matmazurk/qt-parser
+git clone https://github.com/matmazurk/qt-parser.git
 cd qt-parser
 go run . path/to/file
 ```
