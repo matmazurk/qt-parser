@@ -41,34 +41,33 @@ func (p parser) Root() *atom {
 // handleAtom reads desired data for leaf atoms or recursively propagetes itself among container atom childs
 // reader should be exacly after atom's header position
 // size 0 denotes root atom
-// alreadyRead should be set to atom's header size
-func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]byte, error) {
+func handleAtom(r io.Reader, a *atom, size, headerSize uint64) (map[string][][]byte, error) {
 	if a.IsLeaf() {
-		buf := make([]byte, size-alreadyRead)
+		buf := make([]byte, size-headerSize)
 		_, err := r.Read(buf)
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not read bytes from leaf atom '%s'", a.typ)
 		}
 		ret := map[string][][]byte{}
 		for _, sp := range a.searchParams {
-			ret[sp.findingName] = append(ret[sp.findingName], buf[sp.offset-alreadyRead:sp.offset-alreadyRead+sp.bytesAmount])
+			ret[sp.findingName] = append(ret[sp.findingName], buf[sp.offset-headerSize:sp.offset-headerSize+sp.bytesAmount])
 		}
 		return ret, nil
 	}
 
 	findings := map[string][][]byte{}
-	readBytes := alreadyRead
+	readBytes := headerSize
 	for readBytes < size || size == 0 {
-		var loopReadBytes uint64 = 0
+		var headerSize uint64 = 0
 		header := make([]byte, u64Bytes)
 		n, err := r.Read(header)
-		loopReadBytes += uint64(n)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return findings, nil
 			}
 			return nil, errors.Wrap(err, "could not read atom header")
 		}
+		headerSize += uint64(n)
 		if n < u64Bytes {
 			readBytes += uint64(n)
 			continue
@@ -79,7 +78,7 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]
 		if atomSize == extendedSize {
 			bigSize := make([]byte, u64Bytes)
 			n, err := r.Read(bigSize)
-			loopReadBytes += uint64(n)
+			headerSize += uint64(n)
 			if err != nil {
 				return nil, err
 			}
@@ -87,14 +86,14 @@ func handleAtom(r io.Reader, a *atom, size, alreadyRead uint64) (map[string][][]
 		}
 
 		if currAtom, ok := a.childs[currAtomType]; ok {
-			ret, err := handleAtom(r, currAtom, atomSize, loopReadBytes)
+			ret, err := handleAtom(r, currAtom, atomSize, headerSize)
 			if err != nil {
 				return nil, errors.Wrapf(err, "could not handle atom '%s'", currAtomType)
 			}
 			readBytes += atomSize
 			appendMap(findings, ret)
 		} else {
-			err := skipBytes(r, atomSize-loopReadBytes)
+			err := skipBytes(r, atomSize-headerSize)
 			readBytes += atomSize
 			if err != nil {
 				return nil, errors.Wrapf(err, "could not skip %d bytes of '%s' atom type", atomSize, currAtomType)
