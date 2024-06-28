@@ -14,9 +14,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	widthTrackName := "tracks width"
-	heigthTrackName := "tracks heigth"
-	audioFreqName := "audio tracks frequency"
+	const (
+		widthTrackName  = "tracks width"
+		heigthTrackName = "tracks heigth"
+		audioFreqName   = "audio tracks frequency"
+	)
 	p := parser.NewBuilder().
 		Find("moov/trak/tkhd", 84, 4, widthTrackName).
 		Find("moov/trak/tkhd", 88, 4, heigthTrackName).
@@ -25,28 +27,23 @@ func main() {
 
 	f, err := os.Open(os.Args[1])
 	if err != nil {
-		panic(err)
+		fmt.Printf("couldn't open '%s':%s\n", os.Args[1], err.Error())
+		os.Exit(1)
 	}
 	defer f.Close()
 
 	res, err := p.Parse(f)
 	if err != nil {
-		panic(err)
+		fmt.Printf("couldn't parse the file- might be corrupted:%s\n", err.Error())
+		os.Exit(1)
 	}
 
-	widths, ok := res[widthTrackName]
-	if !ok {
-		panic("couldn't find video widths within the file")
-	}
-
-	heigths, ok := res[heigthTrackName]
-	if !ok {
-		panic("couldn't find video heigths within the file")
-	}
-
-	frequencies, ok := res[audioFreqName]
-	if !ok {
-		panic("couldn't find audio frequencies within the file")
+	widths, wOk := res[widthTrackName]
+	heigths, hOk := res[heigthTrackName]
+	frequencies, fOk := res[audioFreqName]
+	if !wOk && !hOk && !fOk {
+		fmt.Println("the file doesn't contain any video or audio tracks")
+		return
 	}
 
 	for i := range len(widths) {
