@@ -140,3 +140,17 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestNonExistingAtomPath(t *testing.T) {
+	f, err := testfiles.Open("testfiles/sample.mp4")
+	require.NoError(t, err)
+	defer f.Close()
+
+	someSearch := "some search"
+	p := parser.NewBuilder().
+		Find("maav/trak/tkhd", 84, 4, someSearch).
+		Build()
+	res, err := p.Parse(f)
+	require.NoError(t, err)
+	require.Empty(t, res)
+}
