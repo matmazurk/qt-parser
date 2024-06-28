@@ -141,7 +141,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestNonExistingAtomPath(t *testing.T) {
+func TestParseNonExistingAtomPath(t *testing.T) {
 	f, err := testfiles.Open("testfiles/sample.mp4")
 	require.NoError(t, err)
 	defer f.Close()
