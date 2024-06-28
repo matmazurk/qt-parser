@@ -7,6 +7,7 @@ type search struct {
 	searchParams searchParams
 }
 
+// builder is helper structure to build parser with given search params with ease
 type builder struct {
 	searches []search
 }
@@ -15,6 +16,10 @@ func NewBuilder() *builder {
 	return &builder{}
 }
 
+// Find registers new search params, which will be included when building the parser
+// atomPath should include all needed atoms formatted in unix path way, e.g.: 'moov/trak/tkhd'
+// findingName is an alias for the single search and can be used later for reference
+// if given atom is found, [offset; offset+bytesAmount] will be read from it
 func (b *builder) Find(atomPath string, offset, bytesAmount uint64, findingName string) *builder {
 	b.searches = append(b.searches, search{
 		atomPath: atomPath,
